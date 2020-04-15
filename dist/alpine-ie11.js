@@ -5731,13 +5731,9 @@
 
       _newArrowCheck(this, _this);
 
-      var tagname = el.tagName.toLowerCase();
-
-      if (tagname === 'script' || tagname === 'styles' || tagname === 'link') {
-        el.parentNode.removeChild(el);
-      }
-
-      var regexp = /^(x-|on)\b/;
+      // we remove x-* attributes since they would selfevaluate
+      // and they can potentially lead to XSS vulnerabilities
+      var regexp = /^(x-)\b/;
       Array.from(el.attributes).forEach(function (attribute) {
         _newArrowCheck(this, _this2);
 
