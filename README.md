@@ -358,9 +358,7 @@ If you wish to customize this, you can specifiy a custom wait time like so:
 
 `x-html` works similarly to `x-bind`, except instead of updating the value of an attribute, it will update the `innerHTML` of an element.
 
-:warning: **x-html allows Alpine to inject raw html code in your page and as such it should be used only when the content to inject is deemed as safe and previously sanitized.  
-In websites using third party scripts, it needs to be used carefully because it could allow those scripts to inject arbitrary HTML in your page.  
-For this reason, x-* attributes that would auto evaluate are removed before injecting the content into your DOM.** :warning:
+:warning: **Dynamically rendering arbitrary HTML on your website can be very dangerous because it can easily lead to XSS vulnerabilities. Only use HTML interpolation on trusted content and never on user-provided content.** :warning:
 
 ---
 
