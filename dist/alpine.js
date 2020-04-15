@@ -677,6 +677,26 @@
     }
   }
 
+  function handleHtmlDirective(element, content) {
+    const sandbox = document.createElement('div');
+    sandbox.innerHTML = content;
+    walk(sandbox, el => {
+      const tagname = el.tagName.toLowerCase();
+
+      if (tagname === 'script' || tagname === 'styles' || tagname === 'link') {
+        el.parentNode.removeChild(el);
+      }
+
+      const regexp = /^(x-|on)\b/;
+      Array.from(el.attributes).forEach(attribute => {
+        if (attribute.name.match(regexp)) {
+          el.removeAttribute(attribute.name);
+        }
+      });
+    });
+    element.innerHTML = sandbox.innerHTML;
+  }
+
   function registerListener(component, el, event, modifiers, expression, extraVars = {}) {
     if (modifiers.includes('away')) {
       let handler = e => {
@@ -1475,7 +1495,8 @@
             break;
 
           case 'html':
-            el.innerHTML = this.evaluateReturnExpression(el, expression, extraVars);
+            var output = this.evaluateReturnExpression(el, expression, extraVars);
+            handleHtmlDirective(el, output);
             break;
 
           case 'show':

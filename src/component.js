@@ -3,6 +3,7 @@ import { handleForDirective } from './directives/for'
 import { handleAttributeBindingDirective } from './directives/bind'
 import { handleShowDirective } from './directives/show'
 import { handleIfDirective } from './directives/if'
+import { handleHtmlDirective } from './directives/html'
 import { registerModelListener } from './directives/model'
 import { registerListener } from './directives/on'
 import { unwrap, wrap } from './observable'
@@ -258,7 +259,9 @@ export default class Component {
                     break;
 
                 case 'html':
-                    el.innerHTML = this.evaluateReturnExpression(el, expression, extraVars)
+                    var output = this.evaluateReturnExpression(el, expression, extraVars)
+
+                    handleHtmlDirective(el, output)
                     break;
 
                 case 'show':
