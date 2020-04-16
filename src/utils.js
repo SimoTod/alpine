@@ -60,20 +60,32 @@ export function debounce(func, wait) {
 
 const allowedGlobals = Sandbox.SAFE_GLOBALS
 const allowedPrototypes = Sandbox.SAFE_PROTOTYPES
-allowedPrototypes.set(CustomEvent, [])
-allowedPrototypes.set(Element, [])
-allowedPrototypes.set(MouseEvent, [])
+allowedPrototypes.set(CustomEvent, new Set())
+allowedPrototypes.set(Element, new Set())
+allowedPrototypes.set(Event, new Set())
+allowedPrototypes.set(EventTarget, new Set())
 const sandbox = new Sandbox(allowedGlobals, allowedPrototypes)
-const expressionCache = {}
+const expressionCache = new WeakMap()
 
-export function saferEval(expression, dataContext, additionalHelperVariables = {}) {
-    const code = `return ${expression};`;
-    const exec = expressionCache[code] || sandbox.compile(code)
-    expressionCache[code] = exec;
+function getExecutionTree(el, code) {
+    let cache = expressionCache.get(el)
+    if(!cache) {
+        cache = {};
+        expressionCache.set(el, cache)
+    }
+    if (!cache[code]) {
+        cache[code] = sandbox.compile(code)
+    }
+    return cache[code];
+}
+
+export function saferEval(el, expression, dataContext, additionalHelperVariables = {}) {
+    const code = `return ${expression};`
+    const exec = getExecutionTree(el, code)
     return exec(window, dataContext, additionalHelperVariables)
 }
 
-export function saferEvalNoReturn(expression, dataContext, additionalHelperVariables = {}) {
+export function saferEvalNoReturn(el, expression, dataContext, additionalHelperVariables = {}) {
     // For the cases when users pass only a function reference to the caller: `x-on:click="foo"`
     // Where "foo" is a function. Also, we'll pass the function the event instance when we call it.
     if (Object.keys(dataContext).includes(expression)) {
@@ -85,8 +97,7 @@ export function saferEvalNoReturn(expression, dataContext, additionalHelperVaria
     }
 
     const code = `${expression}`
-    const exec = expressionCache[code] || sandbox.compile(code)
-    expressionCache[code] = exec;
+    const exec = getExecutionTree(el, code)
     return exec(window, dataContext, additionalHelperVariables)
 }
 
