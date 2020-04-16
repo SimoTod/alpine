@@ -12,6 +12,10 @@ export default {
         file: 'dist/alpine-ie11.js',
         format: 'umd',
     },
+    onwarn(warning, warn) {
+        if (warning.code === 'THIS_IS_UNDEFINED') return;
+        warn(warning); // this requires Rollup 0.46
+    },
     plugins: [
         multi(),
         commonjs(),

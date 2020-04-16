@@ -9313,7 +9313,7 @@
   var sandbox = new Sandbox(allowedGlobals, allowedPrototypes);
   var expressionCache = new WeakMap();
 
-  function getCache(el) {
+  function getExecutionTree(el, code) {
     var cache = expressionCache.get(el);
 
     if (!cache) {
@@ -9321,14 +9321,17 @@
       expressionCache.set(el, cache);
     }
 
-    return cache;
+    if (!cache[code]) {
+      cache[code] = sandbox.compile(code);
+    }
+
+    return cache[code];
   }
 
   function saferEval(el, expression, dataContext) {
     var additionalHelperVariables = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
     var code = "return ".concat(expression, ";");
-    var exec = getCache(el)[code] || sandbox.compile(code);
-    getCache(el)[code] = exec;
+    var exec = getExecutionTree(el, code);
     return exec(window, dataContext, additionalHelperVariables);
   }
   function saferEvalNoReturn(el, expression, dataContext) {
@@ -9347,8 +9350,7 @@
     }
 
     var code = "".concat(expression);
-    var exec = getCache(el)[code] || sandbox.compile(code);
-    getCache(el)[code] = exec;
+    var exec = getExecutionTree(el, code);
     return exec(window, dataContext, additionalHelperVariables);
   }
   var xAttrRE = /^x-(on|bind|data|text|html|model|if|for|show|cloak|transition|ref)\b/;

@@ -1447,7 +1447,7 @@
   const sandbox = new Sandbox(allowedGlobals, allowedPrototypes);
   const expressionCache = new WeakMap();
 
-  function getCache(el) {
+  function getExecutionTree(el, code) {
     let cache = expressionCache.get(el);
 
     if (!cache) {
@@ -1455,13 +1455,16 @@
       expressionCache.set(el, cache);
     }
 
-    return cache;
+    if (!cache[code]) {
+      cache[code] = sandbox.compile(code);
+    }
+
+    return cache[code];
   }
 
   function saferEval(el, expression, dataContext, additionalHelperVariables = {}) {
     const code = `return ${expression};`;
-    const exec = getCache(el)[code] || sandbox.compile(code);
-    getCache(el)[code] = exec;
+    const exec = getExecutionTree(el, code);
     return exec(window, dataContext, additionalHelperVariables);
   }
   function saferEvalNoReturn(el, expression, dataContext, additionalHelperVariables = {}) {
@@ -1478,8 +1481,7 @@
     }
 
     const code = `${expression}`;
-    const exec = getCache(el)[code] || sandbox.compile(code);
-    getCache(el)[code] = exec;
+    const exec = getExecutionTree(el, code);
     return exec(window, dataContext, additionalHelperVariables);
   }
   const xAttrRE = /^x-(on|bind|data|text|html|model|if|for|show|cloak|transition|ref)\b/;
