@@ -39,41 +39,33 @@ test('transition in', async () => {
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            resolve();
-        }, 5)
-    )
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     expect(document.querySelector('span').classList.contains('enter')).toEqual(true)
     expect(document.querySelector('span').classList.contains('enter-start')).toEqual(true)
     expect(document.querySelector('span').classList.contains('enter-end')).toEqual(false)
     expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;')
 
-    frameStack.pop()()
+    frameStack.pop()() // First animation frame
 
     expect(document.querySelector('span').classList.contains('enter')).toEqual(true)
     expect(document.querySelector('span').classList.contains('enter-start')).toEqual(true)
     expect(document.querySelector('span').classList.contains('enter-end')).toEqual(false)
     expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 
-    frameStack.pop()()
+    frameStack.pop()() // Second animation frame
 
     expect(document.querySelector('span').classList.contains('enter')).toEqual(true)
     expect(document.querySelector('span').classList.contains('enter-start')).toEqual(false)
     expect(document.querySelector('span').classList.contains('enter-end')).toEqual(true)
     expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            expect(document.querySelector('span').classList.contains('enter')).toEqual(false)
-            expect(document.querySelector('span').classList.contains('enter-start')).toEqual(false)
-            expect(document.querySelector('span').classList.contains('enter-end')).toEqual(false)
-            expect(document.querySelector('span').getAttribute('style')).toEqual(null)
-            resolve();
-        }, 10)
-    )
+    await timeout(10) // Wait for our transition to finish
+
+    expect(document.querySelector('span').classList.contains('enter')).toEqual(false)
+    expect(document.querySelector('span').classList.contains('enter-start')).toEqual(false)
+    expect(document.querySelector('span').classList.contains('enter-end')).toEqual(false)
+    expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 })
 
 test('transition out', async () => {
@@ -109,41 +101,33 @@ test('transition out', async () => {
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            resolve();
-        }, 5)
-    )
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     expect(document.querySelector('span').classList.contains('leave')).toEqual(true)
     expect(document.querySelector('span').classList.contains('leave-start')).toEqual(true)
     expect(document.querySelector('span').classList.contains('leave-end')).toEqual(false)
     expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 
-    frameStack.pop()()
+    frameStack.pop()() // First animation frame
 
     expect(document.querySelector('span').classList.contains('leave')).toEqual(true)
     expect(document.querySelector('span').classList.contains('leave-start')).toEqual(true)
     expect(document.querySelector('span').classList.contains('leave-end')).toEqual(false)
     expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 
-    frameStack.pop()()
+    frameStack.pop()() // Second animation frame
 
     expect(document.querySelector('span').classList.contains('leave')).toEqual(true)
     expect(document.querySelector('span').classList.contains('leave-start')).toEqual(false)
     expect(document.querySelector('span').classList.contains('leave-end')).toEqual(true)
     expect(document.querySelector('span').getAttribute('style')).toEqual(null)
 
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            expect(document.querySelector('span').classList.contains('leave')).toEqual(false)
-            expect(document.querySelector('span').classList.contains('leave-start')).toEqual(false)
-            expect(document.querySelector('span').classList.contains('leave-end')).toEqual(false)
-            expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;')
-            resolve();
-        }, 10)
-    )
+    await timeout(10) // Wait for our transition to finish
+
+    expect(document.querySelector('span').classList.contains('leave')).toEqual(false)
+    expect(document.querySelector('span').classList.contains('leave-start')).toEqual(false)
+    expect(document.querySelector('span').classList.contains('leave-end')).toEqual(false)
+    expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;')
 })
 
 test('if only transition leave directives are present, don\'t transition in at all', async () => {
@@ -202,7 +186,7 @@ test('if only transition enter directives are present, don\'t transition out at 
 
     document.querySelector('button').click()
 
-    await timeout(10)
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     expect(frameStack.length).toEqual(0)
     expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;')
@@ -295,19 +279,14 @@ test('transition in not called when item is already visible', async () => {
 
     Alpine.start()
 
-    expect(document.querySelector('span').getAttribute('style')).toEqual(null)
+    await wait(() => { expect(document.querySelector('span').getAttribute('style')).toEqual(null) })
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            resolve();
-        }, 5)
-    )
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     // No animation queued
-    expect(frameStack.pop()).toEqual(undefined)
+    expect(frameStack.length).toEqual(0)
 
     expect(document.querySelector('span').classList.contains('enter')).toEqual(false)
     expect(document.querySelector('span').classList.contains('enter-start')).toEqual(false)
@@ -344,21 +323,14 @@ test('transition out not called when item is already hidden', async () => {
 
     Alpine.start()
 
-    await new Promise(resolve => setTimeout(resolve, 1))
-
-    expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;')
+    await wait(() => { expect(document.querySelector('span').getAttribute('style')).toEqual('display: none;') })
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            resolve();
-        }, 5)
-    )
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     // No animation queued
-    expect(frameStack.pop()).toEqual(undefined)
+    expect(frameStack.length).toEqual(0)
 
     expect(document.querySelector('span').classList.contains('leave')).toEqual(false)
     expect(document.querySelector('span').classList.contains('leave-start')).toEqual(false)
@@ -500,12 +472,7 @@ async function assertTransitionHelperStyleAttributeValues(xShowDirective, styleA
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise((resolve) =>
-        setTimeout(() => {
-            resolve();
-        }, 5)
-    )
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     let index = 0
 
@@ -516,14 +483,13 @@ async function assertTransitionHelperStyleAttributeValues(xShowDirective, styleA
         expect(document.querySelector('span').getAttribute('style')).toEqual(styleAttributeExpectations[++index])
     }
 
-    await new Promise(resolve => setTimeout(resolve, 30))
+    await timeout(20)  // Wait for transition to finish
 
     expect(document.querySelector('span').getAttribute('style')).toEqual(styleAttributeExpectations[++index])
 
     document.querySelector('button').click()
 
-    // Wait out the intial Alpine refresh debounce.
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await timeout(5) // Wait out the intial Alpine refresh debounce.
 
     expect(document.querySelector('span').getAttribute('style')).toEqual(styleAttributeExpectations[++index])
 
@@ -532,7 +498,7 @@ async function assertTransitionHelperStyleAttributeValues(xShowDirective, styleA
         expect(document.querySelector('span').getAttribute('style')).toEqual(styleAttributeExpectations[++index])
     }
 
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await timeout(20)  // Wait for transition to finish
 
     expect(document.querySelector('span').getAttribute('style')).toEqual(styleAttributeExpectations[++index])
 }
