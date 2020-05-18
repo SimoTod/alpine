@@ -269,7 +269,7 @@
                     <td>Transitions</td>
                     <td>
                         <div x-data="{ open: false }">
-                            <button x-on:click="open= ! open">
+                            <button x-on:click="open = true; $nextTick(() => $refs.input.focus())">
                                 Open Modal
                             </button>
 
@@ -289,7 +289,7 @@
                                     x-transition:leave="ease-in transition-faster"
                                     x-transition:leave-end="opacity-0 scale-90">
                                     <div>
-                                        hey
+                                        hey <input x-ref="input">
                                     </div>
                                     <div>
                                         <button x-on:click="open= false" type="button">
@@ -306,19 +306,26 @@
                     <td>Transitions (with x-if)</td>
                     <td>
                         <div x-data="{ open: false }">
-                            <button x-on:click="open= ! open">
+                            <button x-on:click="open = true; $nextTick(() => $refs.input.focus())">
                                 Open Modal
                             </button>
 
                             <template x-if="open">
-                                    <div x-transition:enter-start="opacity-0 scale-90"
-                                    x-transition:enter="ease-out transition-medium"
-                                    x-transition:enter-end="opacity-100 scale-100"
-                                    x-transition:leave-start="opacity-100 scale-100"
-                                    x-transition:leave="ease-in transition-faster"
-                                    x-transition:leave-end="opacity-0 scale-90">
-                                        hey
+                                <div x-transition:enter-start="opacity-0 scale-90"
+                                x-transition:enter="ease-out transition-medium"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave="ease-in transition-faster"
+                                x-transition:leave-end="opacity-0 scale-90">
+                                    <div>
+                                        hey <input x-ref="input">
                                     </div>
+                                    <div>
+                                        <button x-on:click="open = false" type="button">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
                             </template>
                         </div>
                     </td>

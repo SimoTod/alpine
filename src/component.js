@@ -187,11 +187,16 @@ export default class Component {
 
     executeAndClearNextTickStack(el) {
         // Skip spawns from alpine directives
-        if (el === this.$el) {
-            // Walk through the $nextTick stack and clear it as we go.
-            while (this.nextTickStack.length > 0) {
-                this.nextTickStack.shift()()
-            }
+        if (el === this.$el && this.nextTickStack.length > 0) {
+            // We run the tick stack after the next frame so transition will pass the show stage
+            // but not the timeout one. In this way we are realluy running the stack after Alpine
+            // has completed its updates but withouth waiting for the animation to finish.
+            requestAnimationFrame(() => {
+                // Walk through the $nextTick stack and clear it as we go.
+                while (this.nextTickStack.length > 0) {
+                    this.nextTickStack.shift()()
+                }
+            })
         }
     }
 

@@ -6740,56 +6740,65 @@
     }, {
       key: "executeAndClearNextTickStack",
       value: function executeAndClearNextTickStack(el) {
+        var _this9 = this;
+
         // Skip spawns from alpine directives
-        if (el === this.$el) {
-          // Walk through the $nextTick stack and clear it as we go.
-          while (this.nextTickStack.length > 0) {
-            this.nextTickStack.shift()();
-          }
+        if (el === this.$el && this.nextTickStack.length > 0) {
+          // We run the tick stack after the next frame so transition will pass the show stage
+          // but not the timeout one. In this way we are realluy running the stack after Alpine
+          // has completed its updates but withouth waiting for the animation to finish.
+          requestAnimationFrame(function () {
+            _newArrowCheck(this, _this9);
+
+            // Walk through the $nextTick stack and clear it as we go.
+            while (this.nextTickStack.length > 0) {
+              this.nextTickStack.shift()();
+            }
+          }.bind(this));
         }
       }
     }, {
       key: "executeAndClearRemainingShowDirectiveStack",
       value: function executeAndClearRemainingShowDirectiveStack() {
-        var _this9 = this;
+        var _this10 = this;
 
         // The goal here is to start all the x-show transitions
         // and build a nested promise chain so that elements
         // only hide when the children are finished hiding.
         this.showDirectiveStack.reverse().map(function (thing) {
-          var _this10 = this;
+          var _this11 = this;
 
-          _newArrowCheck(this, _this9);
+          _newArrowCheck(this, _this10);
 
           return new Promise(function (resolve) {
-            var _this11 = this;
+            var _this12 = this;
 
-            _newArrowCheck(this, _this10);
+            _newArrowCheck(this, _this11);
 
             thing(function (finish) {
-              _newArrowCheck(this, _this11);
+              _newArrowCheck(this, _this12);
 
               resolve(finish);
             }.bind(this));
           }.bind(this));
         }.bind(this)).reduce(function (nestedPromise, promise) {
-          var _this12 = this;
+          var _this13 = this;
 
-          _newArrowCheck(this, _this9);
+          _newArrowCheck(this, _this10);
 
           return nestedPromise.then(function () {
-            var _this13 = this;
+            var _this14 = this;
 
-            _newArrowCheck(this, _this12);
+            _newArrowCheck(this, _this13);
 
             return promise.then(function (finish) {
-              _newArrowCheck(this, _this13);
+              _newArrowCheck(this, _this14);
 
               return finish();
             }.bind(this));
           }.bind(this));
         }.bind(this), Promise.resolve(function () {
-          _newArrowCheck(this, _this9);
+          _newArrowCheck(this, _this10);
         }.bind(this))); // We've processed the handler stack. let's clear it.
 
         this.showDirectiveStack = [];
@@ -6803,7 +6812,7 @@
     }, {
       key: "registerListeners",
       value: function registerListeners(el, extraVars) {
-        var _this14 = this;
+        var _this15 = this;
 
         getXAttrs(el).forEach(function (_ref) {
           var type = _ref.type,
@@ -6811,7 +6820,7 @@
               modifiers = _ref.modifiers,
               expression = _ref.expression;
 
-          _newArrowCheck(this, _this14);
+          _newArrowCheck(this, _this15);
 
           switch (type) {
             case 'on':
@@ -6827,7 +6836,7 @@
     }, {
       key: "resolveBoundAttributes",
       value: function resolveBoundAttributes(el) {
-        var _this15 = this;
+        var _this16 = this;
 
         var initialUpdate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var extraVars = arguments.length > 2 ? arguments[2] : undefined;
@@ -6837,7 +6846,7 @@
           // If there's an x-model on a radio input, move it to end of attribute list
           // to ensure that x-bind:value (if present) is processed first.
           var modelIdx = attrs.findIndex(function (attr) {
-            _newArrowCheck(this, _this15);
+            _newArrowCheck(this, _this16);
 
             return attr.type === 'model';
           }.bind(this));
@@ -6848,14 +6857,14 @@
         }
 
         attrs.forEach(function (_ref2) {
-          var _this16 = this;
+          var _this17 = this;
 
           var type = _ref2.type,
               value = _ref2.value,
               modifiers = _ref2.modifiers,
               expression = _ref2.expression;
 
-          _newArrowCheck(this, _this15);
+          _newArrowCheck(this, _this16);
 
           switch (type) {
             case 'model':
@@ -6886,7 +6895,7 @@
               // If this element also has x-for on it, don't process x-if.
               // We will let the "x-for" directive handle the "if"ing.
               if (attrs.filter(function (i) {
-                _newArrowCheck(this, _this16);
+                _newArrowCheck(this, _this17);
 
                 return i.type === 'for';
               }.bind(this)).length > 0) return;
@@ -6907,10 +6916,10 @@
     }, {
       key: "evaluateReturnExpression",
       value: function evaluateReturnExpression(el, expression) {
-        var _this17 = this;
+        var _this18 = this;
 
         var extraVars = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {
-          _newArrowCheck(this, _this17);
+          _newArrowCheck(this, _this18);
         }.bind(this);
         return saferEval(expression, this.$data, _objectSpread2({}, extraVars(), {
           $dispatch: this.getDispatchFunction(el)
@@ -6919,10 +6928,10 @@
     }, {
       key: "evaluateCommandExpression",
       value: function evaluateCommandExpression(el, expression) {
-        var _this18 = this;
+        var _this19 = this;
 
         var extraVars = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {
-          _newArrowCheck(this, _this18);
+          _newArrowCheck(this, _this19);
         }.bind(this);
         return saferEvalNoReturn(expression, this.$data, _objectSpread2({}, extraVars(), {
           $dispatch: this.getDispatchFunction(el)
@@ -6931,12 +6940,12 @@
     }, {
       key: "getDispatchFunction",
       value: function getDispatchFunction(el) {
-        var _this19 = this;
+        var _this20 = this;
 
         return function (event) {
           var detail = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-          _newArrowCheck(this, _this19);
+          _newArrowCheck(this, _this20);
 
           el.dispatchEvent(new CustomEvent(event, {
             detail: detail,
@@ -6947,7 +6956,7 @@
     }, {
       key: "listenForNewElementsToInitialize",
       value: function listenForNewElementsToInitialize() {
-        var _this20 = this;
+        var _this21 = this;
 
         var targetNode = this.$el;
         var observerOptions = {
@@ -6956,9 +6965,9 @@
           subtree: true
         };
         var observer = new MutationObserver(function (mutations) {
-          var _this21 = this;
+          var _this22 = this;
 
-          _newArrowCheck(this, _this20);
+          _newArrowCheck(this, _this21);
 
           for (var i = 0; i < mutations.length; i++) {
             // Filter out mutations triggered from child components.
@@ -6967,14 +6976,14 @@
 
             if (mutations[i].type === 'attributes' && mutations[i].attributeName === 'x-data') {
               (function () {
-                var _this22 = this;
+                var _this23 = this;
 
                 var rawData = saferEval(mutations[i].target.getAttribute('x-data'), {});
                 Object.keys(rawData).forEach(function (key) {
-                  _newArrowCheck(this, _this22);
+                  _newArrowCheck(this, _this23);
 
-                  if (_this21.$data[key] !== rawData[key]) {
-                    _this21.$data[key] = rawData[key];
+                  if (_this22.$data[key] !== rawData[key]) {
+                    _this22.$data[key] = rawData[key];
                   }
                 }.bind(this));
               })();
@@ -6982,7 +6991,7 @@
 
             if (mutations[i].addedNodes.length > 0) {
               mutations[i].addedNodes.forEach(function (node) {
-                _newArrowCheck(this, _this21);
+                _newArrowCheck(this, _this22);
 
                 if (node.nodeType !== 1 || node.__x_inserted_me) return;
 
@@ -7001,7 +7010,7 @@
     }, {
       key: "getRefsProxy",
       value: function getRefsProxy() {
-        var _this23 = this;
+        var _this24 = this;
 
         var self = this;
         var refObj = {};
@@ -7013,7 +7022,7 @@
         // we just loop on the element, look for any x-ref and create a tmp property on a fake object.
 
         this.walkAndSkipNestedComponents(self.$el, function (el) {
-          _newArrowCheck(this, _this23);
+          _newArrowCheck(this, _this24);
 
           if (el.hasAttribute('x-ref')) {
             refObj[el.getAttribute('x-ref')] = true;
@@ -7027,14 +7036,14 @@
 
         return new Proxy(refObj, {
           get: function get(object, property) {
-            var _this24 = this;
+            var _this25 = this;
 
             if (property === '$isAlpineProxy') return true;
             var ref; // We can't just query the DOM because it's hard to filter out refs in
             // nested components.
 
             self.walkAndSkipNestedComponents(self.$el, function (el) {
-              _newArrowCheck(this, _this24);
+              _newArrowCheck(this, _this25);
 
               if (el.hasAttribute('x-ref') && el.getAttribute('x-ref') === property) {
                 ref = el;
