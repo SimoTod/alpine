@@ -45,19 +45,19 @@ test('nextTick wait for x-for to finish rendering', async () => {
     await wait(() => { expect(document.querySelector('p').innerText).toEqual(3) })
 })
 
-test('$nextTick works with transition', async () => {
+test('$nextTick works with transitions', async () => {
     jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
         setTimeout(callback, 0)
     });
 
     document.body.innerHTML = `
         <div x-data="{show: false, foo: '---'}">
+            <div x-show="show"></div> <!-- we need to make sure the stack is not emptied by the first x-show directive -->
             <div id="A"
                 x-show="show"
                 x-transition:enter="enter"
                 x-transition:enter-start="enter-start"
                 x-transition:enter-end="enter-end">
-                <input x-ref="foo">
             </div>
 
             <span x-text="foo"></span>
@@ -74,7 +74,7 @@ test('$nextTick works with transition', async () => {
 
     await wait(() => expect(document.querySelector('#A').getAttribute('style')).toEqual(null))
 
-    // Next tick should run after we show the element so the style property should be null
+    // NextTick should run after we show the element so the style property should be null
     // We stash them in a variable so we can test it without worring about timing issues
     expect(document.querySelector('span').innerText).toEqual(null)
 })
