@@ -664,7 +664,7 @@
             resolve(() => {
               hide();
             });
-          }, component);
+          }, component, !!el.style.transitionDuration);
         } else {
           resolve(() => {});
         }
@@ -672,7 +672,7 @@
         if (el.style.display !== '') {
           transitionIn(el, () => {
             show();
-          }, component);
+          }, component, !!el.style.transitionDuration);
         } // Resolve immediately, only hold up parent `x-show`s for hidin.
 
 
