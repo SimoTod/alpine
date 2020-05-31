@@ -5600,7 +5600,13 @@
     var _this5 = this;
 
     var forceSkip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-    // We don't want to transition on the initial page load.
+
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+      el.__x_transition_resolve();
+    } // We don't want to transition on the initial page load.
+
+
     if (forceSkip) return show();
     var attrs = getXAttrs(el, component, 'transition');
     var showAttr = getXAttrs(el, component, 'show')[0]; // If this is triggered by a x-show.transition.
@@ -5632,6 +5638,12 @@
     var _this6 = this;
 
     var forceSkip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+      el.__x_transition_resolve();
+    }
+
     if (forceSkip) return hide();
     var attrs = getXAttrs(el, component, 'transition');
     var showAttr = getXAttrs(el, component, 'show')[0];
@@ -5938,7 +5950,7 @@
         _newArrowCheck(this, _this14);
 
         stages.end();
-        setTimeout(function () {
+        el.__x_transition_resolve = once(function () {
           _newArrowCheck(this, _this15);
 
           stages.hide(); // Adding an "isConnected" check, in case the callback
@@ -5947,12 +5959,26 @@
           if (el.isConnected) {
             stages.cleanup();
           }
-        }.bind(this), duration);
+
+          delete el.__x_transition_resolve;
+        }.bind(this));
+        setTimeout(el.__x_transition_resolve, duration);
       }.bind(this));
     }.bind(this));
   }
   function isNumeric(subject) {
     return !isNaN(subject);
+  } // Thanks @vue
+  // https://github.com/vuejs/vue/blob/76fd45c9fd611fecfa79997706a5d218de206b68/src/shared/util.js
+
+  function once(fn) {
+    var called = false;
+    return function () {
+      if (!called) {
+        called = true;
+        fn.apply(this, arguments);
+      }
+    };
   }
 
   function handleForDirective(component, templateEl, expression, initialUpdate, extraVars) {
@@ -6284,7 +6310,7 @@
       _newArrowCheck(this, _this);
 
       if (!value) {
-        if (el.style.display !== 'none') {
+        if (el.style.display !== 'none' || el.__x_transition_resolve) {
           transitionOut(el, function () {
             var _this3 = this;
 
@@ -6302,7 +6328,7 @@
           }.bind(this));
         }
       } else {
-        if (el.style.display !== '') {
+        if (el.style.display !== '' || el.__x_transition_resolve) {
           transitionIn(el, function () {
             _newArrowCheck(this, _this2);
 

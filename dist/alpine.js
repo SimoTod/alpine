@@ -176,7 +176,12 @@
     return name;
   }
   function transitionIn(el, show, component, forceSkip = false) {
-    // We don't want to transition on the initial page load.
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+      el.__x_transition_resolve();
+    } // We don't want to transition on the initial page load.
+
+
     if (forceSkip) return show();
     const attrs = getXAttrs(el, component, 'transition');
     const showAttr = getXAttrs(el, component, 'show')[0]; // If this is triggered by a x-show.transition.
@@ -197,6 +202,11 @@
     }
   }
   function transitionOut(el, hide, component, forceSkip = false) {
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+      el.__x_transition_resolve();
+    }
+
     if (forceSkip) return hide();
     const attrs = getXAttrs(el, component, 'transition');
     const showAttr = getXAttrs(el, component, 'show')[0];
@@ -405,19 +415,33 @@
       stages.show();
       requestAnimationFrame(() => {
         stages.end();
-        setTimeout(() => {
+        el.__x_transition_resolve = once(() => {
           stages.hide(); // Adding an "isConnected" check, in case the callback
           // removed the element from the DOM.
 
           if (el.isConnected) {
             stages.cleanup();
           }
-        }, duration);
+
+          delete el.__x_transition_resolve;
+        });
+        setTimeout(el.__x_transition_resolve, duration);
       });
     });
   }
   function isNumeric(subject) {
     return !isNaN(subject);
+  } // Thanks @vue
+  // https://github.com/vuejs/vue/blob/76fd45c9fd611fecfa79997706a5d218de206b68/src/shared/util.js
+
+  function once(fn) {
+    let called = false;
+    return function () {
+      if (!called) {
+        called = true;
+        fn.apply(this, arguments);
+      }
+    };
   }
 
   function handleForDirective(component, templateEl, expression, initialUpdate, extraVars) {
@@ -659,7 +683,7 @@
 
     const handle = resolve => {
       if (!value) {
-        if (el.style.display !== 'none') {
+        if (el.style.display !== 'none' || el.__x_transition_resolve) {
           transitionOut(el, () => {
             resolve(() => {
               hide();
@@ -669,7 +693,7 @@
           resolve(() => {});
         }
       } else {
-        if (el.style.display !== '') {
+        if (el.style.display !== '' || el.__x_transition_resolve) {
           transitionIn(el, () => {
             show();
           }, component);

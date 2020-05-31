@@ -149,6 +149,11 @@ export function replaceAtAndColonWithStandardSyntax(name) {
 }
 
 export function transitionIn(el, show, component, forceSkip = false) {
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+        el.__x_transition_resolve();
+    }
+
     // We don't want to transition on the initial page load.
     if (forceSkip) return show()
 
@@ -179,6 +184,11 @@ export function transitionIn(el, show, component, forceSkip = false) {
 }
 
 export function transitionOut(el, hide, component, forceSkip = false) {
+    // Resolve any previous pending transitions before starting a new one
+    if (el.__x_transition_resolve) {
+        el.__x_transition_resolve();
+    }
+
     if (forceSkip) return hide()
 
     const attrs = getXAttrs(el, component, 'transition')
@@ -397,7 +407,7 @@ export function transition(el, stages) {
         requestAnimationFrame(() => {
             stages.end()
 
-            setTimeout(() => {
+            el.__x_transition_resolve = once(() => {
                 stages.hide()
 
                 // Adding an "isConnected" check, in case the callback
@@ -405,11 +415,28 @@ export function transition(el, stages) {
                 if (el.isConnected) {
                     stages.cleanup()
                 }
-            }, duration);
+
+                delete el.__x_transition_resolve
+            })
+
+            setTimeout(el.__x_transition_resolve, duration);
         })
     });
 }
 
 export function isNumeric(subject){
     return ! isNaN(subject)
+}
+
+
+// Thanks @vue
+// https://github.com/vuejs/vue/blob/76fd45c9fd611fecfa79997706a5d218de206b68/src/shared/util.js
+export function once (fn) {
+    let called = false
+    return function () {
+        if (!called) {
+            called = true
+            fn.apply(this, arguments)
+        }
+    }
 }
