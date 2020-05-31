@@ -620,3 +620,30 @@ test('x-transition supports css animation', async () => {
     )
     expect(document.querySelector('span').classList.contains('animation-leave')).toEqual(false)
 })
+
+test('x-transition does not overlap', async () => {
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+        setTimeout(callback, 0)
+    });
+
+    document.body.innerHTML = `
+        <div x-data="{open:true}">
+            <button @click="open = !open">toggle</button>
+            <p x-show.transition.duration.1000ms="open">Test</p>
+            <span x-text="open"></span>
+        </div>
+    `
+
+    Alpine.start()
+
+    // Simulate double click
+    document.querySelector('button').click()
+    await timeout(100)
+    document.querySelector('button').click()
+
+    // Wait for the second transition to finish
+    await timeout(1100)
+
+    expect(document.querySelector('span').innerText).toEqual(true)
+    expect(document.querySelector('p').style.display).toEqual('')
+})
