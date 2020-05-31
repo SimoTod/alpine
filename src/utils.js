@@ -150,8 +150,8 @@ export function replaceAtAndColonWithStandardSyntax(name) {
 
 export function transitionIn(el, show, component, forceSkip = false) {
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-        el.__x_transition_resolve();
+    if (el.__x_transition_out_resolve) {
+        el.__x_transition_out_resolve();
     }
 
     // We don't want to transition on the initial page load.
@@ -185,8 +185,8 @@ export function transitionIn(el, show, component, forceSkip = false) {
 
 export function transitionOut(el, hide, component, forceSkip = false) {
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-        el.__x_transition_resolve();
+    if (el.__x_transition_in_resolve) {
+        el.__x_transition_in_resolve();
     }
 
     if (forceSkip) return hide()
@@ -227,7 +227,7 @@ export function transitionHelperIn(el, modifiers, showCallback) {
         },
     }
 
-    transitionHelper(el, modifiers, showCallback, () => {}, styleValues)
+    transitionHelper(el, modifiers, showCallback, () => {}, styleValues, '__x_transition_in_resolve')
 }
 
 export function transitionHelperOut(el, modifiers, settingBothSidesOfTransition, hideCallback) {
@@ -251,7 +251,7 @@ export function transitionHelperOut(el, modifiers, settingBothSidesOfTransition,
         },
     }
 
-    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues)
+    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues, '__x_transition_out_resolve')
 }
 
 function modifierValue(modifiers, key, fallback) {
@@ -286,7 +286,7 @@ function modifierValue(modifiers, key, fallback) {
     return rawValue
 }
 
-export function transitionHelper(el, modifiers, hook1, hook2, styleValues) {
+export function transitionHelper(el, modifiers, hook1, hook2, styleValues, callbackKey) {
     // If the user set these style values, we'll put them back when we're done with them.
     const opacityCache = el.style.opacity
     const transformCache = el.style.transform
@@ -331,7 +331,7 @@ export function transitionHelper(el, modifiers, hook1, hook2, styleValues) {
         },
     }
 
-    transition(el, stages)
+    transition(el, stages, callbackKey)
 }
 
 export function transitionClassesIn(el, component, directives, showCallback) {
@@ -348,7 +348,7 @@ export function transitionClassesIn(el, component, directives, showCallback) {
     const enterEnd = ensureStringExpression((directives.find(i => i.value === 'enter-end') || { expression: '' }).expression)
         .split(' ').filter(i => i !== '')
 
-    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {})
+    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {}, '__x_transition_in_resolve')
 }
 
 export function transitionClassesOut(el, component, directives, hideCallback) {
@@ -356,10 +356,10 @@ export function transitionClassesOut(el, component, directives, hideCallback) {
     const leaveStart = (directives.find(i => i.value === 'leave-start') || { expression: '' }).expression.split(' ').filter(i => i !== '')
     const leaveEnd = (directives.find(i => i.value === 'leave-end') || { expression: '' }).expression.split(' ').filter(i => i !== '')
 
-    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback)
+    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback, '__x_transition_out_resolve')
 }
 
-export function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2) {
+export function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2, callbackKey) {
     const originalClasses = el.__x_original_classes || []
 
     const stages = {
@@ -386,10 +386,10 @@ export function transitionClasses(el, classesDuring, classesStart, classesEnd, h
         },
     }
 
-    transition(el, stages)
+    transition(el, stages, callbackKey)
 }
 
-export function transition(el, stages) {
+export function transition(el, stages, callbackKey) {
     stages.start()
     stages.during()
 
@@ -407,7 +407,7 @@ export function transition(el, stages) {
         requestAnimationFrame(() => {
             stages.end()
 
-            el.__x_transition_resolve = once(() => {
+            el[callbackKey] = once(() => {
                 stages.hide()
 
                 // Adding an "isConnected" check, in case the callback
@@ -416,10 +416,10 @@ export function transition(el, stages) {
                     stages.cleanup()
                 }
 
-                delete el.__x_transition_resolve
+                delete el[callbackKey]
             })
 
-            setTimeout(el.__x_transition_resolve, duration);
+            setTimeout(el[callbackKey], duration);
         })
     });
 }

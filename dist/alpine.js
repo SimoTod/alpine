@@ -177,8 +177,8 @@
   }
   function transitionIn(el, show, component, forceSkip = false) {
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-      el.__x_transition_resolve();
+    if (el.__x_transition_out_resolve) {
+      el.__x_transition_out_resolve();
     } // We don't want to transition on the initial page load.
 
 
@@ -203,8 +203,8 @@
   }
   function transitionOut(el, hide, component, forceSkip = false) {
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-      el.__x_transition_resolve();
+    if (el.__x_transition_in_resolve) {
+      el.__x_transition_in_resolve();
     }
 
     if (forceSkip) return hide();
@@ -237,7 +237,7 @@
         scale: 100
       }
     };
-    transitionHelper(el, modifiers, showCallback, () => {}, styleValues);
+    transitionHelper(el, modifiers, showCallback, () => {}, styleValues, '__x_transition_in_resolve');
   }
   function transitionHelperOut(el, modifiers, settingBothSidesOfTransition, hideCallback) {
     // Make the "out" transition .5x slower than the "in". (Visually better)
@@ -256,7 +256,7 @@
         scale: modifierValue(modifiers, 'scale', 95)
       }
     };
-    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues);
+    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues, '__x_transition_out_resolve');
   }
 
   function modifierValue(modifiers, key, fallback) {
@@ -289,7 +289,7 @@
     return rawValue;
   }
 
-  function transitionHelper(el, modifiers, hook1, hook2, styleValues) {
+  function transitionHelper(el, modifiers, hook1, hook2, styleValues, callbackKey) {
     // If the user set these style values, we'll put them back when we're done with them.
     const opacityCache = el.style.opacity;
     const transformCache = el.style.transform;
@@ -337,7 +337,7 @@
       }
 
     };
-    transition(el, stages);
+    transition(el, stages, callbackKey);
   }
   function transitionClassesIn(el, component, directives, showCallback) {
     let ensureStringExpression = expression => {
@@ -353,7 +353,7 @@
     const enterEnd = ensureStringExpression((directives.find(i => i.value === 'enter-end') || {
       expression: ''
     }).expression).split(' ').filter(i => i !== '');
-    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {});
+    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {}, '__x_transition_in_resolve');
   }
   function transitionClassesOut(el, component, directives, hideCallback) {
     const leave = (directives.find(i => i.value === 'leave') || {
@@ -365,9 +365,9 @@
     const leaveEnd = (directives.find(i => i.value === 'leave-end') || {
       expression: ''
     }).expression.split(' ').filter(i => i !== '');
-    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback);
+    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback, '__x_transition_out_resolve');
   }
-  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2) {
+  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2, callbackKey) {
     const originalClasses = el.__x_original_classes || [];
     const stages = {
       start() {
@@ -398,9 +398,9 @@
       }
 
     };
-    transition(el, stages);
+    transition(el, stages, callbackKey);
   }
-  function transition(el, stages) {
+  function transition(el, stages, callbackKey) {
     stages.start();
     stages.during();
     requestAnimationFrame(() => {
@@ -415,7 +415,7 @@
       stages.show();
       requestAnimationFrame(() => {
         stages.end();
-        el.__x_transition_resolve = once(() => {
+        el[callbackKey] = once(() => {
           stages.hide(); // Adding an "isConnected" check, in case the callback
           // removed the element from the DOM.
 
@@ -423,9 +423,9 @@
             stages.cleanup();
           }
 
-          delete el.__x_transition_resolve;
+          delete el[callbackKey];
         });
-        setTimeout(el.__x_transition_resolve, duration);
+        setTimeout(el[callbackKey], duration);
       });
     });
   }
@@ -683,7 +683,7 @@
 
     const handle = resolve => {
       if (!value) {
-        if (el.style.display !== 'none' || el.__x_transition_resolve) {
+        if (el.style.display !== 'none' || el.__x_transition_in_resolve) {
           transitionOut(el, () => {
             resolve(() => {
               hide();
@@ -693,7 +693,7 @@
           resolve(() => {});
         }
       } else {
-        if (el.style.display !== '' || el.__x_transition_resolve) {
+        if (el.style.display !== '' || el.__x_transition_out_resolve) {
           transitionIn(el, () => {
             show();
           }, component);
@@ -729,13 +729,13 @@
     if (el.nodeName.toLowerCase() !== 'template') console.warn(`Alpine: [x-if] directive should only be added to <template> tags. See https://github.com/alpinejs/alpine#x-if`);
     const elementHasAlreadyBeenAdded = el.nextElementSibling && el.nextElementSibling.__x_inserted_me === true;
 
-    if (expressionResult && !elementHasAlreadyBeenAdded) {
+    if (expressionResult && (!elementHasAlreadyBeenAdded || el.__x_transition_out_resolve)) {
       const clone = document.importNode(el.content, true);
       el.parentElement.insertBefore(clone, el.nextElementSibling);
       transitionIn(el.nextElementSibling, () => {}, component, initialUpdate);
       component.initializeElements(el.nextElementSibling, extraVars);
       el.nextElementSibling.__x_inserted_me = true;
-    } else if (!expressionResult && elementHasAlreadyBeenAdded) {
+    } else if (!expressionResult && (elementHasAlreadyBeenAdded || el.__x_transition_in_resolve)) {
       transitionOut(el.nextElementSibling, () => {
         el.nextElementSibling.remove();
       }, component, initialUpdate);

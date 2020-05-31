@@ -24,7 +24,7 @@ export function handleShowDirective(component, el, value, modifiers, initialUpda
 
     const handle = (resolve) => {
         if (! value) {
-            if ( el.style.display !== 'none' || el.__x_transition_resolve) {
+            if ( el.style.display !== 'none' || el.__x_transition_in_resolve) {
                 transitionOut(el, () => {
                     resolve(() => {
                         hide()
@@ -34,7 +34,7 @@ export function handleShowDirective(component, el, value, modifiers, initialUpda
                 resolve(() => {})
             }
         } else {
-            if ( el.style.display !== '' || el.__x_transition_resolve) {
+            if ( el.style.display !== '' || el.__x_transition_out_resolve) {
                 transitionIn(el, () => {
                     show()
                 }, component)

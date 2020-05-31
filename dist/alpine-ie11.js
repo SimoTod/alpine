@@ -1143,7 +1143,7 @@
   (module.exports = function (key, value) {
     return sharedStore[key] || (sharedStore[key] = value !== undefined ? value : {});
   })('versions', []).push({
-    version: '3.6.5',
+    version: '3.6.4',
     mode:  'global',
     copyright: '© 2020 Denis Pushkarev (zloirock.ru)'
   });
@@ -2348,15 +2348,19 @@
   }
 
   function _slicedToArray(arr, i) {
-    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
   }
 
   function _toConsumableArray(arr) {
-    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
+    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread();
   }
 
   function _arrayWithoutHoles(arr) {
-    if (Array.isArray(arr)) return _arrayLikeToArray(arr);
+    if (Array.isArray(arr)) {
+      for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+
+      return arr2;
+    }
   }
 
   function _arrayWithHoles(arr) {
@@ -2364,11 +2368,14 @@
   }
 
   function _iterableToArray(iter) {
-    if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter);
+    if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter);
   }
 
   function _iterableToArrayLimit(arr, i) {
-    if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return;
+    if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
+      return;
+    }
+
     var _arr = [];
     var _n = true;
     var _d = false;
@@ -2394,29 +2401,12 @@
     return _arr;
   }
 
-  function _unsupportedIterableToArray(o, minLen) {
-    if (!o) return;
-    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
-    var n = Object.prototype.toString.call(o).slice(8, -1);
-    if (n === "Object" && o.constructor) n = o.constructor.name;
-    if (n === "Map" || n === "Set") return Array.from(o);
-    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
-  }
-
-  function _arrayLikeToArray(arr, len) {
-    if (len == null || len > arr.length) len = arr.length;
-
-    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-
-    return arr2;
-  }
-
   function _nonIterableSpread() {
-    throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    throw new TypeError("Invalid attempt to spread non-iterable instance");
   }
 
   function _nonIterableRest() {
-    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    throw new TypeError("Invalid attempt to destructure non-iterable instance");
   }
 
   var runtime_1 = createCommonjsModule(function (module) {
@@ -3518,13 +3508,7 @@
       defer = functionBindContext(port.postMessage, port, 1);
     // Browsers with postMessage, skip WebWorkers
     // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
-    } else if (
-      global_1.addEventListener &&
-      typeof postMessage == 'function' &&
-      !global_1.importScripts &&
-      !fails(post) &&
-      location.protocol !== 'file:'
-    ) {
+    } else if (global_1.addEventListener && typeof postMessage == 'function' && !global_1.importScripts && !fails(post)) {
       defer = post;
       global_1.addEventListener('message', listener, false);
     // IE8-
@@ -5602,8 +5586,8 @@
     var forceSkip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-      el.__x_transition_resolve();
+    if (el.__x_transition_out_resolve) {
+      el.__x_transition_out_resolve();
     } // We don't want to transition on the initial page load.
 
 
@@ -5640,8 +5624,8 @@
     var forceSkip = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
     // Resolve any previous pending transitions before starting a new one
-    if (el.__x_transition_resolve) {
-      el.__x_transition_resolve();
+    if (el.__x_transition_in_resolve) {
+      el.__x_transition_in_resolve();
     }
 
     if (forceSkip) return hide();
@@ -5686,7 +5670,7 @@
     };
     transitionHelper(el, modifiers, showCallback, function () {
       _newArrowCheck(this, _this7);
-    }.bind(this), styleValues);
+    }.bind(this), styleValues, '__x_transition_in_resolve');
   }
   function transitionHelperOut(el, modifiers, settingBothSidesOfTransition, hideCallback) {
     var _this8 = this;
@@ -5709,7 +5693,7 @@
     };
     transitionHelper(el, modifiers, function () {
       _newArrowCheck(this, _this8);
-    }.bind(this), hideCallback, styleValues);
+    }.bind(this), hideCallback, styleValues, '__x_transition_out_resolve');
   }
 
   function modifierValue(modifiers, key, fallback) {
@@ -5742,7 +5726,7 @@
     return rawValue;
   }
 
-  function transitionHelper(el, modifiers, hook1, hook2, styleValues) {
+  function transitionHelper(el, modifiers, hook1, hook2, styleValues, callbackKey) {
     // If the user set these style values, we'll put them back when we're done with them.
     var opacityCache = el.style.opacity;
     var transformCache = el.style.transform;
@@ -5784,7 +5768,7 @@
         el.style.transitionTimingFunction = null;
       }
     };
-    transition(el, stages);
+    transition(el, stages, callbackKey);
   }
   function transitionClassesIn(el, component, directives, showCallback) {
     var _this9 = this;
@@ -5830,7 +5814,7 @@
     }.bind(this));
     transitionClasses(el, enter, enterStart, enterEnd, showCallback, function () {
       _newArrowCheck(this, _this9);
-    }.bind(this));
+    }.bind(this), '__x_transition_in_resolve');
   }
   function transitionClassesOut(el, component, directives, hideCallback) {
     var _this10 = this;
@@ -5870,9 +5854,9 @@
     }.bind(this));
     transitionClasses(el, leave, leaveStart, leaveEnd, function () {
       _newArrowCheck(this, _this10);
-    }.bind(this), hideCallback);
+    }.bind(this), hideCallback, '__x_transition_out_resolve');
   }
-  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2) {
+  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2, callbackKey) {
     var originalClasses = el.__x_original_classes || [];
     var stages = {
       start: function start() {
@@ -5923,9 +5907,9 @@
         }.bind(this))));
       }
     };
-    transition(el, stages);
+    transition(el, stages, callbackKey);
   }
-  function transition(el, stages) {
+  function transition(el, stages, callbackKey) {
     var _this13 = this;
 
     stages.start();
@@ -5950,7 +5934,7 @@
         _newArrowCheck(this, _this14);
 
         stages.end();
-        el.__x_transition_resolve = once(function () {
+        el[callbackKey] = once(function () {
           _newArrowCheck(this, _this15);
 
           stages.hide(); // Adding an "isConnected" check, in case the callback
@@ -5960,9 +5944,9 @@
             stages.cleanup();
           }
 
-          delete el.__x_transition_resolve;
+          delete el[callbackKey];
         }.bind(this));
-        setTimeout(el.__x_transition_resolve, duration);
+        setTimeout(el[callbackKey], duration);
       }.bind(this));
     }.bind(this));
   }
@@ -6310,7 +6294,7 @@
       _newArrowCheck(this, _this);
 
       if (!value) {
-        if (el.style.display !== 'none' || el.__x_transition_resolve) {
+        if (el.style.display !== 'none' || el.__x_transition_in_resolve) {
           transitionOut(el, function () {
             var _this3 = this;
 
@@ -6328,7 +6312,7 @@
           }.bind(this));
         }
       } else {
-        if (el.style.display !== '' || el.__x_transition_resolve) {
+        if (el.style.display !== '' || el.__x_transition_out_resolve) {
           transitionIn(el, function () {
             _newArrowCheck(this, _this2);
 
@@ -6374,7 +6358,7 @@
     if (el.nodeName.toLowerCase() !== 'template') console.warn("Alpine: [x-if] directive should only be added to <template> tags. See https://github.com/alpinejs/alpine#x-if");
     var elementHasAlreadyBeenAdded = el.nextElementSibling && el.nextElementSibling.__x_inserted_me === true;
 
-    if (expressionResult && !elementHasAlreadyBeenAdded) {
+    if (expressionResult && (!elementHasAlreadyBeenAdded || el.__x_transition_out_resolve)) {
       var clone = document.importNode(el.content, true);
       el.parentElement.insertBefore(clone, el.nextElementSibling);
       transitionIn(el.nextElementSibling, function () {
@@ -6382,7 +6366,7 @@
       }.bind(this), component, initialUpdate);
       component.initializeElements(el.nextElementSibling, extraVars);
       el.nextElementSibling.__x_inserted_me = true;
-    } else if (!expressionResult && elementHasAlreadyBeenAdded) {
+    } else if (!expressionResult && (elementHasAlreadyBeenAdded || el.__x_transition_in_resolve)) {
       transitionOut(el.nextElementSibling, function () {
         _newArrowCheck(this, _this);
 
