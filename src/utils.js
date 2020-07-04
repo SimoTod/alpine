@@ -309,7 +309,7 @@ export function transitionHelper(el, modifiers, hook1, hook2, styleValues, type)
     // clear the previous transition if exists to avoid caching the wrong styles
     if (el.__x_transition) {
         cancelAnimationFrame(el.__x_transition.nextFrame)
-        el.__x_transition.callback()
+        el.__x_transition.callback && el.__x_transition.callback()
     }
 
     // If the user set these style values, we'll put them back when we're done with them.
@@ -385,7 +385,7 @@ export function transitionClasses(el, classesDuring, classesStart, classesEnd, h
     // clear the previous transition if exists to avoid caching the wrong classes
     if (el.__x_transition) {
         cancelAnimationFrame(el.__x_transition.nextFrame)
-        el.__x_transition.callback()
+        el.__x_transition.callback && el.__x_transition.callback()
     }
 
     const originalClasses = el.__x_original_classes || []
