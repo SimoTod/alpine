@@ -188,8 +188,24 @@
   function convertClassStringToArray(classList, filterFn = Boolean) {
     return classList.split(' ').filter(filterFn);
   }
+  const TRANSITION_TYPE_IN = 'in';
+  const TRANSITION_TYPE_OUT = 'out';
   function transitionIn(el, show, component, forceSkip = false) {
+    if (el.__x_transition && el.__x_transition.type === TRANSITION_TYPE_IN) {
+      // there is already a similar transition going on, this was probably triggered by
+      // a change in a different property, let's just leave the previous one doing its job
+      return;
+    } // We don't want to transition on the initial page load.
+
+
     if (forceSkip) return show();
+
+    if (el.__x_transition && el.__x_transition.type === TRANSITION_TYPE_IN) {
+      // there is already a similar transition going on, this was probably triggered by
+      // a change in a different property, let's just leave the previous one doing its job
+      return;
+    }
+
     const attrs = getXAttrs(el, component, 'transition');
     const showAttr = getXAttrs(el, component, 'show')[0]; // If this is triggered by a x-show.transition.
 
@@ -211,6 +227,13 @@
   function transitionOut(el, hide, component, forceSkip = false) {
     // We don't want to transition on the initial page load.
     if (forceSkip) return hide();
+
+    if (el.__x_transition && el.__x_transition.type === TRANSITION_TYPE_OUT) {
+      // there is already a similar transition going on, this was probably triggered by
+      // a change in a different property, let's just leave the previous one doing its job
+      return;
+    }
+
     const attrs = getXAttrs(el, component, 'transition');
     const showAttr = getXAttrs(el, component, 'show')[0];
 
@@ -240,7 +263,7 @@
         scale: 100
       }
     };
-    transitionHelper(el, modifiers, showCallback, () => {}, styleValues);
+    transitionHelper(el, modifiers, showCallback, () => {}, styleValues, TRANSITION_TYPE_IN);
   }
   function transitionHelperOut(el, modifiers, settingBothSidesOfTransition, hideCallback) {
     // Make the "out" transition .5x slower than the "in". (Visually better)
@@ -259,7 +282,7 @@
         scale: modifierValue(modifiers, 'scale', 95)
       }
     };
-    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues);
+    transitionHelper(el, modifiers, () => {}, hideCallback, styleValues, TRANSITION_TYPE_OUT);
   }
 
   function modifierValue(modifiers, key, fallback) {
@@ -292,8 +315,15 @@
     return rawValue;
   }
 
-  function transitionHelper(el, modifiers, hook1, hook2, styleValues) {
-    // If the user set these style values, we'll put them back when we're done with them.
+  function transitionHelper(el, modifiers, hook1, hook2, styleValues, type) {
+    // clear the previous transition if exists to avoid caching the wrong styles
+    if (el.__x_transition) {
+      cancelAnimationFrame(el.__x_transition.nextFrame);
+
+      el.__x_transition.callback();
+    } // If the user set these style values, we'll put them back when we're done with them.
+
+
     const opacityCache = el.style.opacity;
     const transformCache = el.style.transform;
     const transformOriginCache = el.style.transformOrigin; // If no modifiers are present: x-show.transition, we'll default to both opacity and scale.
@@ -340,7 +370,7 @@
       }
 
     };
-    transition(el, stages);
+    transition(el, stages, type);
   }
   function transitionClassesIn(el, component, directives, showCallback) {
     let ensureStringExpression = expression => {
@@ -356,7 +386,7 @@
     const enterEnd = convertClassStringToArray(ensureStringExpression((directives.find(i => i.value === 'enter-end') || {
       expression: ''
     }).expression));
-    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {});
+    transitionClasses(el, enter, enterStart, enterEnd, showCallback, () => {}, TRANSITION_TYPE_IN);
   }
   function transitionClassesOut(el, component, directives, hideCallback) {
     const leave = convertClassStringToArray((directives.find(i => i.value === 'leave') || {
@@ -368,9 +398,16 @@
     const leaveEnd = convertClassStringToArray((directives.find(i => i.value === 'leave-end') || {
       expression: ''
     }).expression);
-    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback);
+    transitionClasses(el, leave, leaveStart, leaveEnd, () => {}, hideCallback, TRANSITION_TYPE_OUT);
   }
-  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2) {
+  function transitionClasses(el, classesDuring, classesStart, classesEnd, hook1, hook2, type) {
+    // clear the previous transition if exists to avoid caching the wrong classes
+    if (el.__x_transition) {
+      cancelAnimationFrame(el.__x_transition.nextFrame);
+
+      el.__x_transition.callback();
+    }
+
     const originalClasses = el.__x_original_classes || [];
     const stages = {
       start() {
@@ -401,12 +438,31 @@
       }
 
     };
-    transition(el, stages);
+    transition(el, stages, type);
   }
-  function transition(el, stages) {
+  function transition(el, stages, type) {
+    el.__x_transition = {
+      // Set transition type so we can avoid clearing transition if the direction is the same
+      type: type,
+      // create a callback for the last stages of the transition so we can call it
+      // from different point and early terminate it. Once will ensure that function
+      // is only called one time.
+      callback: once(() => {
+        stages.hide(); // Adding an "isConnected" check, in case the callback
+        // removed the element from the DOM.
+
+        if (el.isConnected) {
+          stages.cleanup();
+        }
+
+        delete el.__x_transition;
+      }),
+      // This store the next animation frame so we can cancel it
+      nextFrame: null
+    };
     stages.start();
     stages.during();
-    requestAnimationFrame(() => {
+    el.__x_transition.nextFrame = requestAnimationFrame(() => {
       // Note: Safari's transitionDuration property will list out comma separated transition durations
       // for every single transition property. Let's grab the first one and call it a day.
       let duration = Number(getComputedStyle(el).transitionDuration.replace(/,.*/, '').replace('s', '')) * 1000;
@@ -416,22 +472,25 @@
       }
 
       stages.show();
-      requestAnimationFrame(() => {
-        stages.end(); // Assign current transition to el in case we need to force it.
-
-        setTimeout(() => {
-          stages.hide(); // Adding an "isConnected" check, in case the callback
-          // removed the element from the DOM.
-
-          if (el.isConnected) {
-            stages.cleanup();
-          }
-        }, duration);
+      el.__x_transition.nextFrame = requestAnimationFrame(() => {
+        stages.end();
+        setTimeout(el.__x_transition.callback, duration);
       });
     });
   }
   function isNumeric(subject) {
     return !isNaN(subject);
+  } // Thanks @vuejs
+  // https://github.com/vuejs/vue/blob/4de4649d9637262a9b007720b59f80ac72a5620c/src/shared/util.js
+
+  function once(callback) {
+    let called = false;
+    return function () {
+      if (!called) {
+        called = true;
+        callback.apply(this, arguments);
+      }
+    };
   }
 
   function handleForDirective(component, templateEl, expression, initialUpdate, extraVars) {
@@ -674,9 +733,12 @@
 
     const handle = resolve => {
       if (value) {
-        transitionIn(el, () => {
-          show();
-        }, component);
+        if (el.style.display === 'none' || el.__x_transition) {
+          transitionIn(el, () => {
+            show();
+          }, component);
+        }
+
         resolve(() => {});
       } else {
         if (el.style.display !== 'none') {
@@ -715,7 +777,7 @@
     warnIfMalformedTemplate(el, 'x-if');
     const elementHasAlreadyBeenAdded = el.nextElementSibling && el.nextElementSibling.__x_inserted_me === true;
 
-    if (expressionResult && !elementHasAlreadyBeenAdded) {
+    if (expressionResult && (!elementHasAlreadyBeenAdded || el.__x_transition)) {
       const clone = document.importNode(el.content, true);
       el.parentElement.insertBefore(clone, el.nextElementSibling);
       transitionIn(el.nextElementSibling, () => {}, component, initialUpdate);
@@ -729,9 +791,13 @@
   }
 
   function registerListener(component, el, event, modifiers, expression, extraVars = {}) {
+    const options = {
+      passive: modifiers.includes('passive')
+    };
+
     if (modifiers.includes('away')) {
       let handler = e => {
-        // Don't do anything if the click came form the element or within it.
+        // Don't do anything if the click came from the element or within it.
         if (el.contains(e.target)) return; // Don't do anything if this element isn't currently visible.
 
         if (el.offsetWidth < 1 && el.offsetHeight < 1) return; // Now that we are sure the element is visible, AND the click
@@ -740,12 +806,12 @@
         runListenerHandler(component, expression, e, extraVars);
 
         if (modifiers.includes('once')) {
-          document.removeEventListener(event, handler);
+          document.removeEventListener(event, handler, options);
         }
       }; // Listen for this event at the root level.
 
 
-      document.addEventListener(event, handler);
+      document.addEventListener(event, handler, options);
     } else {
       let listenerTarget = modifiers.includes('window') ? window : modifiers.includes('document') ? document : el;
 
@@ -754,7 +820,7 @@
         // has been removed. It's now stale.
         if (listenerTarget === window || listenerTarget === document) {
           if (!document.body.contains(el)) {
-            listenerTarget.removeEventListener(event, handler);
+            listenerTarget.removeEventListener(event, handler, options);
             return;
           }
         }
@@ -777,7 +843,7 @@
             e.preventDefault();
           } else {
             if (modifiers.includes('once')) {
-              listenerTarget.removeEventListener(event, handler);
+              listenerTarget.removeEventListener(event, handler, options);
             }
           }
         }
@@ -789,7 +855,7 @@
         handler = debounce(handler, wait);
       }
 
-      listenerTarget.addEventListener(event, handler);
+      listenerTarget.addEventListener(event, handler, options);
     }
   }
 
@@ -1612,7 +1678,7 @@
           if (!(closestParentComponent && closestParentComponent.isSameNode(this.$el))) continue;
 
           if (mutations[i].type === 'attributes' && mutations[i].attributeName === 'x-data') {
-            const rawData = saferEval(mutations[i].target.getAttribute('x-data'), {
+            const rawData = saferEval(mutations[i].target.getAttribute('x-data') || '{}', {
               $el: this.$el
             });
             Object.keys(rawData).forEach(key => {
