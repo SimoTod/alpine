@@ -97,7 +97,7 @@ You can even use it for non-trivial things:
 
 ## Learn
 
-There are 13 directives available to you:
+There are 14 directives available to you:
 
 | Directive | Description |
 | --- | --- |
@@ -113,7 +113,7 @@ There are 13 directives available to you:
 | [`x-if`](#x-if) | Remove an element completely from the DOM. Needs to be used on a `<template>` tag. |
 | [`x-for`](#x-for) | Create new DOM nodes for each item in an array. Needs to be used on a `<template>` tag. |
 | [`x-transition`](#x-transition) | Directives for applying classes to various stages of an element's transition |
-| [`x-spread`](#x-spread) | Allows you to bind an object of Alpine directives to an element for better reausibility |
+| [`x-spread`](#x-spread) | Allows you to bind an object of Alpine directives to an element for better reusability |
 | [`x-cloak`](#x-cloak) | This attribute is removed when Alpine initializes. Useful for hiding pre-initialized DOM. |
 
 And 6 magic properties:
@@ -355,6 +355,11 @@ Adding `.window` to an event listener will install the listener on the global wi
 
 Adding the `.once` modifier to an event listener will ensure that the listener will only be handled once. This is useful for things you only want to do once, like fetching HTML partials and such.
 
+**`.passive` modifier**
+**Example:** `<button x-on:mousedown.passive="interactive = true"></button>`
+
+Adding the `.passive` modifier to an event listener will make the listener a passive one, which means `preventDefault()` will not work on any events being processed, this can help, for example with scroll performance on touch devices.
+
 **`.debounce` modifier**
 **Example:** `<input x-on:input.debounce="fetchSomething()">`
 
@@ -529,7 +534,7 @@ These behave exactly like VueJs's transition directives, except they have differ
 ### `x-spread`
 **Example:**
 ```html
-<div x-data="dropdown">
+<div x-data="dropdown()">
     <button x-spread="trigger">Open Dropdown</button>
 
     <span x-spread="dialogue">Dropdown Contents</span>
@@ -561,13 +566,7 @@ These behave exactly like VueJs's transition directives, except they have differ
 
 The object keys are the directives (Can be any directive including modifiers), and the values are callbacks to be evaluated by Alpine.
 
-> Note: The only anomoly with x-spread is when used with `x-for`. When the directive being "spread" is `x-for`, you should return a normal expression string from the callback. For example: `['x-for']() { return 'item in items' }`.
-
-```html
-<style>
-    [x-cloak] { display: none; }
-</style>
-```
+> Note: The only anomaly with x-spread is when used with `x-for`. When the directive being "spread" is `x-for`, you should return a normal expression string from the callback. For example: `['x-for']() { return 'item in items' }`.
 
 ---
 
