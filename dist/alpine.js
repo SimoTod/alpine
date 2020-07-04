@@ -191,13 +191,7 @@
   const TRANSITION_TYPE_IN = 'in';
   const TRANSITION_TYPE_OUT = 'out';
   function transitionIn(el, show, component, forceSkip = false) {
-    if (el.__x_transition && el.__x_transition.type === TRANSITION_TYPE_IN) {
-      // there is already a similar transition going on, this was probably triggered by
-      // a change in a different property, let's just leave the previous one doing its job
-      return;
-    } // We don't want to transition on the initial page load.
-
-
+    // We don't want to transition on the initial page load.
     if (forceSkip) return show();
 
     if (el.__x_transition && el.__x_transition.type === TRANSITION_TYPE_IN) {
