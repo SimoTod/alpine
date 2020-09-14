@@ -7130,9 +7130,6 @@
       // our magic properties to the original data for access.
 
       this.unobservedData.$el = this.$el;
-      this.unobservedData.$foo = {
-        foo: 'bar'
-      };
       this.unobservedData.$refs = this.getRefsProxy();
       this.nextTickStack = [];
 

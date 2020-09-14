@@ -54,7 +54,6 @@ export default class Component {
         // After making user-supplied data methods reactive, we can now add
         // our magic properties to the original data for access.
         this.unobservedData.$el = this.$el
-        this.unobservedData.$foo = {foo: 'bar'}
         this.unobservedData.$refs = this.getRefsProxy()
 
         this.nextTickStack = []
