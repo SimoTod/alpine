@@ -7101,9 +7101,9 @@
       this.unobservedData.$el = null;
       this.unobservedData.$refs = null;
       this.unobservedData.$nextTick = null;
-      this.unobservedData.$watch = null; // The IE build uses a proxy polyfil which doesn't allow property to be
-      // defined after the proxy object has been created. For IE only,
-      // we need to define our helper ealier.
+      this.unobservedData.$watch = null; // The IE build uses a proxy polyfil which doesn't allow properties
+      // to be defined after the proxy object is created.
+      // For IE only, we need to define our helpers ealier.
 
       Object.entries(Alpine.magicProperties).forEach(function (_ref3) {
         _newArrowCheck(this, _this);
@@ -7211,8 +7211,6 @@
 
           _newArrowCheck(this, _this3);
 
-          var isArray = Array.isArray(target);
-
           if (self.watchers[key]) {
             // If there's a watcher for this specific key, run it.
             self.watchers[key].forEach(function (callback) {
@@ -7220,17 +7218,16 @@
 
               return callback(target[key]);
             }.bind(this));
-          } else if (isArray) {
-            // Array are special cases, if any of the element changes, we consider the array as mutated.
-            // Key is not relevant since it's going to be the item index
+          } else if (Array.isArray(target)) {
+            // Arrays are special cases, if any of the items change, we consider the array as mutated.
             Object.keys(self.watchers).forEach(function (fullDotNotationKey) {
               var _this5 = this;
 
               _newArrowCheck(this, _this4);
 
-              var dotNotationParts = fullDotNotationKey.split('.'); // Ignore length mutations since they would result in duplicate calls
-              // For example, when calling push, we would get a mutation for the item
-              // and a second mutation for the length property
+              var dotNotationParts = fullDotNotationKey.split('.'); // Ignore length mutations since they would result in duplicate calls.
+              // For example, when calling push, we would get a mutation for the item's key
+              // and a second mutation for the length property.
 
               if (key === 'length') return;
               dotNotationParts.reduce(function (comparisonData, part) {
@@ -7239,7 +7236,6 @@
                 _newArrowCheck(this, _this5);
 
                 if (Object.is(target, comparisonData[part])) {
-                  // Run the watchers.
                   self.watchers[fullDotNotationKey].forEach(function (callback) {
                     _newArrowCheck(this, _this6);
 
@@ -7803,20 +7799,15 @@
       observer.observe(targetNode, observerOptions);
     },
     initializeComponent: function initializeComponent(el) {
-      var _this8 = this;
-
       if (!el.__x) {
         // Wrap in a try/catch so that we don't prevent other components
         // from initializing when one component contains an error.
-        try {
-          el.__x = new Component(el);
-        } catch (error) {
-          setTimeout(function () {
-            _newArrowCheck(this, _this8);
-
-            throw error;
-          }.bind(this), 0);
-        }
+        //try {
+        el.__x = new Component(el); //} catch (error) {
+        //    setTimeout(() => {
+        //        throw error
+        //    }, 0)
+        //}
       }
     },
     clone: function clone(component, newEl) {

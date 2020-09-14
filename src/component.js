@@ -37,10 +37,9 @@ export default class Component {
             this.unobservedData.$refs = null
             this.unobservedData.$nextTick = null
             this.unobservedData.$watch = null
-
-            // The IE build uses a proxy polyfil which doesn't allow property to be
-            // defined after the proxy object has been created. For IE only,
-            // we need to define our helper ealier.
+            // The IE build uses a proxy polyfil which doesn't allow properties
+            // to be defined after the proxy object is created.
+            // For IE only, we need to define our helpers ealier.
             Object.entries(Alpine.magicProperties).forEach(([name, callback]) => {
                 Object.defineProperty(this.unobservedData, `$${name}`, { get: function () { return callback(canonicalComponentElementReference) } });
             })
@@ -70,8 +69,8 @@ export default class Component {
 
 
         /* IE11-ONLY:START */
-        // We remove this code from the legacy build since we have already
-        // defined our helpers above.
+        // We remove this code from the legacy build bacause, in IE,
+        // we have already defined our helpers at this point.
         if (false) {
         /* IE11-ONLY:END */
 
@@ -129,27 +128,25 @@ export default class Component {
         }, 0)
 
         return wrap(data, (target, key) => {
-            const isArray = Array.isArray(target)
             if (self.watchers[key]) {
                 // If there's a watcher for this specific key, run it.
                 self.watchers[key].forEach(callback => callback(target[key]))
-            } else if (isArray) {
-                // Array are special cases, if any of the element changes, we consider the array as mutated.
-                // Key is not relevant since it's going to be the item index
+            } else if (Array.isArray(target)) {
+                // Arrays are special cases, if any of the items change, we consider the array as mutated.
                 Object.keys(self.watchers)
                     .forEach(fullDotNotationKey => {
                         let dotNotationParts = fullDotNotationKey.split('.')
 
-                        // Ignore length mutations since they would result in duplicate calls
-                        // For example, when calling push, we would get a mutation for the item
-                        // and a second mutation for the length property
+                        // Ignore length mutations since they would result in duplicate calls.
+                        // For example, when calling push, we would get a mutation for the item's key
+                        // and a second mutation for the length property.
                         if (key === 'length') return
 
                         dotNotationParts.reduce((comparisonData, part) => {
                             if (Object.is(target, comparisonData[part])) {
-                                // Run the watchers.
                                 self.watchers[fullDotNotationKey].forEach(callback => callback(target))
                             }
+
                             return comparisonData[part]
                         }, self.getUnobservedData())
                     })
