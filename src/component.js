@@ -37,8 +37,12 @@ export default class Component {
             this.unobservedData.$refs = null
             this.unobservedData.$nextTick = null
             this.unobservedData.$watch = null
-            Object.keys(Alpine.magicProperties).forEach(name => {
-                this.unobservedData[`$${name}`] = null
+
+            // The IE build uses a proxy polyfil which doesn't allow property to be
+            // defined after the proxy object has been created. For IE only,
+            // we need to define our helper ealier.
+            Object.entries(Alpine.magicProperties).forEach(([name, callback]) => {
+                Object.defineProperty(this.unobservedData, `$${name}`, { get: function () { return callback(canonicalComponentElementReference) } });
             })
         /* IE11-ONLY:END */
 
@@ -50,6 +54,7 @@ export default class Component {
         // After making user-supplied data methods reactive, we can now add
         // our magic properties to the original data for access.
         this.unobservedData.$el = this.$el
+        this.unobservedData.$foo = {foo: 'bar'}
         this.unobservedData.$refs = this.getRefsProxy()
 
         this.nextTickStack = []
@@ -64,10 +69,21 @@ export default class Component {
             this.watchers[property].push(callback)
         }
 
+
+        /* IE11-ONLY:START */
+        // We remove this code from the legacy build since we have already
+        // defined our helpers above.
+        if (false) {
+        /* IE11-ONLY:END */
+
         // Register custom magic properties.
         Object.entries(Alpine.magicProperties).forEach(([name, callback]) => {
             Object.defineProperty(this.unobservedData, `$${name}`, { get: function () { return callback(canonicalComponentElementReference) } });
         })
+
+        /* IE11-ONLY:START */
+        }
+        /* IE11-ONLY:END */
 
         this.showDirectiveStack = []
         this.showDirectiveLastElement
@@ -114,25 +130,27 @@ export default class Component {
         }, 0)
 
         return wrap(data, (target, key) => {
+            const isArray = Array.isArray(target)
             if (self.watchers[key]) {
                 // If there's a watcher for this specific key, run it.
                 self.watchers[key].forEach(callback => callback(target[key]))
-            } else if (Array.isArray(target)) {
-                // Arrays are special cases, if any of the items change, we consider the array as mutated.
+            } else if (isArray) {
+                // Array are special cases, if any of the element changes, we consider the array as mutated.
+                // Key is not relevant since it's going to be the item index
                 Object.keys(self.watchers)
                     .forEach(fullDotNotationKey => {
                         let dotNotationParts = fullDotNotationKey.split('.')
 
-                        // Ignore length mutations since they would result in duplicate calls.
-                        // For example, when calling push, we would get a mutation for the item's key
-                        // and a second mutation for the length property.
+                        // Ignore length mutations since they would result in duplicate calls
+                        // For example, when calling push, we would get a mutation for the item
+                        // and a second mutation for the length property
                         if (key === 'length') return
 
                         dotNotationParts.reduce((comparisonData, part) => {
                             if (Object.is(target, comparisonData[part])) {
+                                // Run the watchers.
                                 self.watchers[fullDotNotationKey].forEach(callback => callback(target))
                             }
-
                             return comparisonData[part]
                         }, self.getUnobservedData())
                     })
