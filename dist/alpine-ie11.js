@@ -3613,21 +3613,6 @@
     }
   });
 
-  var nativeReverse = [].reverse;
-  var test$1 = [1, 2];
-
-  // `Array.prototype.reverse` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.reverse
-  // fix for Safari 12.0 bug
-  // https://bugs.webkit.org/show_bug.cgi?id=188794
-  _export({ target: 'Array', proto: true, forced: String(test$1) === String(test$1.reverse()) }, {
-    reverse: function reverse() {
-      // eslint-disable-next-line no-self-assign
-      if (isArray(this)) this.length = this.length;
-      return nativeReverse.call(this);
-    }
-  });
-
   var $some = arrayIteration.some;
 
 
@@ -7116,11 +7101,22 @@
       this.unobservedData.$el = null;
       this.unobservedData.$refs = null;
       this.unobservedData.$nextTick = null;
-      this.unobservedData.$watch = null;
-      Object.keys(Alpine.magicProperties).forEach(function (name) {
+      this.unobservedData.$watch = null; // The IE build uses a proxy polyfil which doesn't allow property to be
+      // defined after the proxy object has been created. For IE only,
+      // we need to define our helper ealier.
+
+      Object.entries(Alpine.magicProperties).forEach(function (_ref3) {
         _newArrowCheck(this, _this);
 
-        this.unobservedData["$".concat(name)] = null;
+        var _ref4 = _slicedToArray(_ref3, 2),
+            name = _ref4[0],
+            callback = _ref4[1];
+
+        Object.defineProperty(this.unobservedData, "$".concat(name), {
+          get: function get() {
+            return callback(canonicalComponentElementReference);
+          }
+        });
       }.bind(this));
       /* IE11-ONLY:END */
       // Construct a Proxy-based observable. This will be used to handle reactivity.
@@ -7134,6 +7130,9 @@
       // our magic properties to the original data for access.
 
       this.unobservedData.$el = this.$el;
+      this.unobservedData.$foo = {
+        foo: 'bar'
+      };
       this.unobservedData.$refs = this.getRefsProxy();
       this.nextTickStack = [];
 
@@ -7150,22 +7149,10 @@
 
         if (!this.watchers[property]) this.watchers[property] = [];
         this.watchers[property].push(callback);
-      }.bind(this); // Register custom magic properties.
+      }.bind(this);
+      /* IE11-ONLY:END */
 
 
-      Object.entries(Alpine.magicProperties).forEach(function (_ref3) {
-        _newArrowCheck(this, _this);
-
-        var _ref4 = _slicedToArray(_ref3, 2),
-            name = _ref4[0],
-            callback = _ref4[1];
-
-        Object.defineProperty(this.unobservedData, "$".concat(name), {
-          get: function get() {
-            return callback(canonicalComponentElementReference);
-          }
-        });
-      }.bind(this));
       this.showDirectiveStack = [];
       this.showDirectiveLastElement;
       componentForClone || Alpine.onBeforeComponentInitializeds.forEach(function (callback) {
@@ -7227,6 +7214,8 @@
 
           _newArrowCheck(this, _this3);
 
+          var isArray = Array.isArray(target);
+
           if (self.watchers[key]) {
             // If there's a watcher for this specific key, run it.
             self.watchers[key].forEach(function (callback) {
@@ -7234,16 +7223,17 @@
 
               return callback(target[key]);
             }.bind(this));
-          } else if (Array.isArray(target)) {
-            // Arrays are special cases, if any of the items change, we consider the array as mutated.
+          } else if (isArray) {
+            // Array are special cases, if any of the element changes, we consider the array as mutated.
+            // Key is not relevant since it's going to be the item index
             Object.keys(self.watchers).forEach(function (fullDotNotationKey) {
               var _this5 = this;
 
               _newArrowCheck(this, _this4);
 
-              var dotNotationParts = fullDotNotationKey.split('.'); // Ignore length mutations since they would result in duplicate calls.
-              // For example, when calling push, we would get a mutation for the item's key
-              // and a second mutation for the length property.
+              var dotNotationParts = fullDotNotationKey.split('.'); // Ignore length mutations since they would result in duplicate calls
+              // For example, when calling push, we would get a mutation for the item
+              // and a second mutation for the length property
 
               if (key === 'length') return;
               dotNotationParts.reduce(function (comparisonData, part) {
@@ -7252,6 +7242,7 @@
                 _newArrowCheck(this, _this5);
 
                 if (Object.is(target, comparisonData[part])) {
+                  // Run the watchers.
                   self.watchers[fullDotNotationKey].forEach(function (callback) {
                     _newArrowCheck(this, _this6);
 
@@ -7462,13 +7453,13 @@
       value: function registerListeners(el, extraVars) {
         var _this18 = this;
 
-        getXAttrs(el, this).forEach(function (_ref5) {
+        getXAttrs(el, this).forEach(function (_ref7) {
           _newArrowCheck(this, _this18);
 
-          var type = _ref5.type,
-              value = _ref5.value,
-              modifiers = _ref5.modifiers,
-              expression = _ref5.expression;
+          var type = _ref7.type,
+              value = _ref7.value,
+              modifiers = _ref7.modifiers,
+              expression = _ref7.expression;
 
           switch (type) {
             case 'on':
@@ -7489,15 +7480,15 @@
         var initialUpdate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
         var extraVars = arguments.length > 2 ? arguments[2] : undefined;
         var attrs = getXAttrs(el, this);
-        attrs.forEach(function (_ref6) {
+        attrs.forEach(function (_ref8) {
           var _this20 = this;
 
           _newArrowCheck(this, _this19);
 
-          var type = _ref6.type,
-              value = _ref6.value,
-              modifiers = _ref6.modifiers,
-              expression = _ref6.expression;
+          var type = _ref8.type,
+              value = _ref8.value,
+              modifiers = _ref8.modifiers,
+              expression = _ref8.expression;
 
           switch (type) {
             case 'model':
