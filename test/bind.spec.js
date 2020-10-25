@@ -527,3 +527,25 @@ test('non-string and non-boolean attributes are cast to string when bound to che
     expect(document.querySelector('#boolean').value).toEqual('on')
     expect(document.querySelector('#null').value).toEqual('on')
 })
+
+test('undefined class binding resolves to empty string', async () => {
+    jest.spyOn(window, 'setTimeout').mockImplementation((callback,time) => {
+        // Alpine uses setTimeout 0  to  defer errors and allows other components to initialize
+        // making almost impossible to catch the error in Jest. For this test, we'll make timeout sync
+        callback()
+    });
+
+    document.body.innerHTML = `
+        <div x-data="{ errorClass: (hasError) => { if (hasError) { return 'red' } } }">
+            <span id="error" x-bind:class="errorClass(true)">should be red</span>
+            <span id="empty" x-bind:class="errorClass(false)">should be empty</span>
+        </div>
+    `
+
+    // Test that Alpine.start resolves correctly (If an error is thrown, the promise will be rejected)
+    // We use toBeUndefined because start doesn't return anything and we need at least one assertion
+    await expect(Alpine.start()).resolves.toBeUndefined()
+
+    expect(document.querySelector('#error').classList.value).toEqual('red')
+    expect(document.querySelector('#empty').classList.value).toEqual('')
+})
